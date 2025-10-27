@@ -1,0 +1,40 @@
+services:
+  monitoria:
+    image: monitoria:latest
+    build:
+      context: .
+      dockerfile: docker/dockerfile.monitoria
+      target: development
+    container_name: monitoria_api
+    ports:
+      - "9000:9000"
+    env_file:
+      - ./.env
+    volumes:
+      - ./src/api:/var/www/api
+      - ./src/core:/var/www/core
+    depends_on:
+      - database
+
+  nginx:
+    image: nginx:latest
+    container_name: monitoria_nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - monitoria
+
+  database:
+    image: postgres:18rc1-alpine3.22
+    container_name: monitoria_db
+    environment:
+      - POSTGRES_DB=monitoria_db
+      - POSTGRES_USER=monitoria_user
+      - POSTGRES_PASSWORD=securepassword
+    volumes:
+      - ./sql/monitoria_schema.sql:/docker-entrypoint-initdb.d/monitoria_schema.sql
+      - ./sql/monitoria_seeder.sql:/docker-entrypoint-initdb.d/monitoria_seeder.sql
+    ports:
+      - 5432:5432
